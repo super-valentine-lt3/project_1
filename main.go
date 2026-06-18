@@ -32,9 +32,13 @@ func init() {
 
 }
 
-func DrawTiledLayer(screen *ebiten.Image, i int) {
+func DrawTiledLayer(screen *ebiten.Image, name string) {
 	for _, layer := range gameMap.Layers {
+		if layer.Name != name { continue }
+
 	    for pos, tile := range layer.Tiles {
+	    	if tile.Nil { continue }
+	    	
 	        rect := tile.GetTileRect()
 
 	        sub := img.SubImage(rect).(*ebiten.Image)
@@ -60,7 +64,9 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrint(screen, "Hello, World!")	
-	DrawTiledLayer(screen, 0)
+	DrawTiledLayer(screen, "base")
+	DrawTiledLayer(screen, "over")
+
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {

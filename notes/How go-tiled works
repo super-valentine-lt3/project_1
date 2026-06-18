@@ -1,0 +1,29 @@
+How go-tiled works 
+
+tiled.LoadFile -> *Map 
+*Map -> Layers ([]*Layer)
+Layer -> Tiles ([]*LayerTile)
+LayerTile -> Tileset (*Tileset)
+LayerTile has TileID
+func (ts *Tileset) GetTileRect(tileID uint32) image.Rectangle
+
+// Code to draw a static tiled layer 
+func DrawTiledLayer(screen *ebiten.Image, i int) {
+	for _, layer := range gameMap.Layers {
+	    for pos, tile := range layer.Tiles {
+	        rect := tile.GetTileRect()
+
+	        sub := img.SubImage(rect).(*ebiten.Image)
+	        tileX := pos % gameMap.Width
+	        tileY := pos / gameMap.Width
+
+	        op := &ebiten.DrawImageOptions{}
+	        op.GeoM.Translate(
+	            float64(tileX*gameMap.TileWidth),
+	            float64(tileY*gameMap.TileHeight),
+	        )
+
+	        screen.DrawImage(sub, op)
+	    }
+	}	
+}

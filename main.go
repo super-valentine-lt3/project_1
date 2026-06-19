@@ -37,7 +37,6 @@ func init() {
         os.Exit(2)
     }
 
-
 }
 
 func GetObjectGroup(name string) *tiled.ObjectGroup {
@@ -102,6 +101,8 @@ func DrawTiledLayer(screen *ebiten.Image, name string) {
 	    }
 	}	
 }
+var fade *Fade 
+
 type Direction int
 
 const (
@@ -318,6 +319,14 @@ func (c *Character) Update(Map *CollisionMap) {
 
 func (game *Game) Update() error {
 	game.Char.Update(&game.Map)
+	if fade == nil &&  ebiten.IsKeyPressed(ebiten.KeyF) {
+		f := NewFade(1, 0) 
+		fade = &f 
+	} else if fade != nil {
+		if fade.Finished() {
+			fade = nil 
+		} 
+	}
 	return nil
 }
 
@@ -326,6 +335,9 @@ func (game *Game) Draw(screen *ebiten.Image) {
 	DrawTiledLayer(screen, "base")
 	DrawTiledLayer(screen, "over")
 	game.Char.Draw(screen) 
+	if fade != nil {
+		fade.Draw(screen)
+	} 
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -348,7 +360,7 @@ func main() {
 		Char: Char, 
 		Map: NewCollisionMap(), 
 	}
-	fmt.Println(game.Map)
+
 	ebiten.SetWindowSize(640, 480)
 	ebiten.SetWindowTitle("Hello, World!")
 	if err := ebiten.RunGame(game); err != nil {

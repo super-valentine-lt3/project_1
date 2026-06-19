@@ -8,6 +8,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 
     "fmt"
     "os"
@@ -57,26 +58,6 @@ func GetObjectFromObjectLayer(objectGroup *tiled.ObjectGroup, name string) *tile
 	return nil 
 }
 
-// func CanMove(PosX float64, PosY float64) bool {
-// 	for _, layer := range gameMap.Layers {
-// 		if layer.Name != name { continue }
-
-// 	    for pos, tile := range layer.Tiles {
-// 	    	if tile.Nil { continue }
-	    	
-// 			tt := tile.Tileset.GetTilesetTile(tile.ID)
-
-// 	        tileX := pos % gameMap.Width
-// 	        tileY := pos / gameMap.Width
-
-// 	        if tt.Properties.GetBool("solid") {
-// 	        	return false 
-// 	        } 
-// 	    }
-// 	}	
-// 	return true 
-// }
-
 
 func DrawTiledLayer(screen *ebiten.Image, name string) {
 	for _, layer := range gameMap.Layers {
@@ -116,7 +97,7 @@ var CurrentDirection = Down
 
 type Game struct{
 	Map CollisionMap  
-	Char *Character 
+	Chars  []*Character 
 }
 
 type CollisionMap struct {
@@ -177,6 +158,21 @@ type Character struct {
 	Sprite *SpriteAnim 
 	PosX float64
 	PosY float64	
+	Actions map[string]ebiten.Key 
+	Data map[string]string 
+	CurrentDirection Direction 
+}
+
+func (c *Character) Get(name string) string {
+	return c.Data[name]  
+}
+
+func (c *Character) SetData(name string, value string) {
+	c.Data[name] = value 
+}
+
+func (c *Character) SetAction(name string, key ebiten.Key) {
+	c.Actions[name] = key 
 }
 
 type SpriteAnim struct {
@@ -258,6 +254,10 @@ func NewCharacter(obj *tiled.Object,
 	character.Sprite = spriteAnim
 	character.PosX = obj.X 
 	character.PosY = obj.Y 
+	character.Actions = make(map[string]ebiten.Key)
+	character.Data = make(map[string]string)
+	character.CurrentDirection = Down 
+
 	return character
 }
 
@@ -266,40 +266,41 @@ func (c *Character) Draw(screen *ebiten.Image) {
 }
 
 func (c *Character) Update(Map *CollisionMap) {
-	if ebiten.IsKeyPressed(ebiten.KeyUp) {
+	//if ebiten.IsKeyPressed(ebiten.KeyUp) {
+	if ebiten.IsKeyPressed(c.Actions["move_up"]) {	
 		tempY :=  c.PosY - speed 
 		tempX := c.PosX 
 		if Map.CanMove(tempX, tempY) {
 			c.Sprite.Play("walk_up")
 			c.PosY = c.PosY - speed 
-			CurrentDirection = Up 
+			c.CurrentDirection = Up 
 		}
-	} else if ebiten.IsKeyPressed(ebiten.KeyDown) {
+	} else if ebiten.IsKeyPressed(c.Actions["move_down"]) {
 		tempY :=  c.PosY + speed 
 		tempX := c.PosX 
 		if Map.CanMove(tempX, tempY) {
 			c.Sprite.Play("walk_down")
 			c.PosY = c.PosY + speed 
-			CurrentDirection = Down 
+			c.CurrentDirection = Down 
 		}
-	} else if ebiten.IsKeyPressed(ebiten.KeyLeft) {
+	} else if ebiten.IsKeyPressed(c.Actions["move_left"]) {
 		tempX := c.PosX - speed 
 		tempY := c.PosY 
 		if Map.CanMove(tempX, tempY) {
 			c.Sprite.Play("walk_left")
 			c.PosX = c.PosX - speed 
-			CurrentDirection = Left 
+			c.CurrentDirection = Left 
 		}
-	} else if ebiten.IsKeyPressed(ebiten.KeyRight) {
+	} else if ebiten.IsKeyPressed(c.Actions["move_right"]) {
 		tempX := c.PosX + speed 
 		tempY := c.PosY 
 		if Map.CanMove(tempX, tempY) {
 			c.Sprite.Play("walk_right")
 			c.PosX = c.PosX + speed 
-			CurrentDirection = Right 
+			c.CurrentDirection = Right 
 		}
 	} else {
-	    switch CurrentDirection {
+	    switch c.CurrentDirection {
 	    case Up:
 	       c.Sprite.Play("idle_up")
 	    case Down:
@@ -315,10 +316,16 @@ func (c *Character) Update(Map *CollisionMap) {
 
 	c.Sprite.Update(float32(1.0 / 60.0))
 
+	if inpututil.IsKeyJustPressed(c.Actions["shoot_projectile"]) {
+		Projectiles = append(Projectiles, NewProjectile(c.PosX, c.PosY, c.CurrentDirection, 2, c.Get("projectile_color")))
+	}
 }
 
 func (game *Game) Update() error {
-	game.Char.Update(&game.Map)
+	for _,  char := range game.Chars {
+		char.Update(&game.Map)
+	}
+
 	if fade == nil &&  ebiten.IsKeyPressed(ebiten.KeyF) {
 		f := NewFade(1, 0) 
 		fade = &f 
@@ -327,6 +334,9 @@ func (game *Game) Update() error {
 			fade = nil 
 		} 
 	}
+	for _, proj := range Projectiles {
+		proj.Update()
+	}
 	return nil
 }
 
@@ -334,7 +344,15 @@ func (game *Game) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrint(screen, "Hello, World!")	
 	DrawTiledLayer(screen, "base")
 	DrawTiledLayer(screen, "over")
-	game.Char.Draw(screen) 
+
+	for _, char := range game.Chars {
+		char.Draw(screen) 
+	}
+
+	for _, proj := range Projectiles {
+		proj.Draw(screen)
+	}
+
 	if fade != nil {
 		fade.Draw(screen)
 	} 
@@ -348,16 +366,41 @@ func main() {
 	
 	objectsLayer := GetObjectGroup("objects") 	// Search for Object Layer called "objects"
 	object := GetObjectFromObjectLayer(objectsLayer, "PlayerStart")
+	object2 := GetObjectFromObjectLayer(objectsLayer, "PlayerStart2")
+	
 	fmt.Println(object)
 
+	characters := make([]*Character, 0)
 
 	Char := NewCharacter(object, 
 			CharacterSpriteFile, 
 			CharacterSpriteDirectory, 
 			CharacterSpriteStartAnim)
+	Char.SetAction("move_up", ebiten.KeyUp)
+	Char.SetAction("move_left", ebiten.KeyLeft)
+	Char.SetAction("move_right", ebiten.KeyRight)
+	Char.SetAction("move_down", ebiten.KeyDown)
+	Char.SetAction("shoot_projectile", ebiten.KeySpace)	
+	Char.SetData("projectile_color", "red")
+
+	characters = append(characters, Char)
+
+	Char2 := NewCharacter(object2, 
+			CharacterSpriteFile, 
+			CharacterSpriteDirectory, 
+			CharacterSpriteStartAnim)
+	Char2.SetAction("move_up", ebiten.KeyW)
+	Char2.SetAction("move_left", ebiten.KeyA)
+	Char2.SetAction("move_right", ebiten.KeyD)
+	Char2.SetAction("move_down", ebiten.KeyS)
+	Char2.SetAction("shoot_projectile", ebiten.KeyEnter)
+	Char2.SetData("projectile_color", "green")
+
+	characters = append(characters, Char2)
+
 
 	game := &Game {
-		Char: Char, 
+		Chars: characters, 
 		Map: NewCollisionMap(), 
 	}
 

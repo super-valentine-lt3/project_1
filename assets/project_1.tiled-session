@@ -27,6 +27,7 @@
         "test.tsx"
     ],
     "project": "project_1.tiled-project",
+    "property.type": "bool",
     "recentFiles": [
         "test.tsx",
         "map_1.tmx"

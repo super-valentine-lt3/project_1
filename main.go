@@ -58,6 +58,27 @@ func GetObjectFromObjectLayer(objectGroup *tiled.ObjectGroup, name string) *tile
 	return nil 
 }
 
+// func CanMove(PosX float64, PosY float64) bool {
+// 	for _, layer := range gameMap.Layers {
+// 		if layer.Name != name { continue }
+
+// 	    for pos, tile := range layer.Tiles {
+// 	    	if tile.Nil { continue }
+	    	
+// 			tt := tile.Tileset.GetTilesetTile(tile.ID)
+
+// 	        tileX := pos % gameMap.Width
+// 	        tileY := pos / gameMap.Width
+
+// 	        if tt.Properties.GetBool("solid") {
+// 	        	return false 
+// 	        } 
+// 	    }
+// 	}	
+// 	return true 
+// }
+
+
 func DrawTiledLayer(screen *ebiten.Image, name string) {
 	for _, layer := range gameMap.Layers {
 		if layer.Name != name { continue }
@@ -93,7 +114,62 @@ const (
 var CurrentDirection = Down 
 
 type Game struct{
+	Map CollisionMap  
 	Char *Character 
+}
+
+type CollisionMap struct {
+    Width  int
+    Height int
+    Solid  [][]bool
+}
+
+func NewCollisionMap() CollisionMap {
+	collision := make([][]bool, gameMap.Height)
+
+	for y := range collision {
+	    collision[y] = make([]bool, gameMap.Width)
+	}	
+
+	for _, layer := range gameMap.Layers {
+	    for pos, tile := range layer.Tiles {
+	        if tile.Nil {
+	            continue
+	        }
+
+	        tt, err := tile.Tileset.GetTilesetTile(tile.ID)
+	        if err != nil { continue }
+	        if tt.Properties.GetBool("solid") {
+	            x := pos % gameMap.Width
+	            y := pos / gameMap.Width
+
+	            collision[y][x] = true
+	        }
+	    }
+	}
+
+	return CollisionMap{
+		Width: gameMap.Width, 
+		Height: gameMap.Height, Solid: collision}
+}
+
+const tileWidth = 16
+const tileHeight = 16
+func (cm *CollisionMap) IsSolid(x, y float64) bool {
+    tx := int(x) / tileWidth
+    ty := int(y) / tileHeight
+
+    return cm.Solid[ty][tx]
+}
+
+const PlayerWidth = 16
+const PlayerHeight = 16
+
+func (cm *CollisionMap) CanMove(newX, newY float64) bool {
+    return !cm.IsSolid(newX, newY) &&
+           !cm.IsSolid(newX+PlayerWidth-1, newY) &&
+           !cm.IsSolid(newX, newY+PlayerHeight-1) &&
+           !cm.IsSolid(newX+PlayerWidth-1, newY+PlayerHeight-1)
 }
 
 type Character struct {
@@ -188,23 +264,39 @@ func (c *Character) Draw(screen *ebiten.Image) {
 	c.Sprite.Draw(screen, c.PosX, c.PosY)
 }
 
-func (c *Character) Update() {
+func (c *Character) Update(Map *CollisionMap) {
 	if ebiten.IsKeyPressed(ebiten.KeyUp) {
-		c.Sprite.Play("walk_up")
-		c.PosY = c.PosY - speed 
-		CurrentDirection = Up 
+		tempY :=  c.PosY - speed 
+		tempX := c.PosX 
+		if Map.CanMove(tempX, tempY) {
+			c.Sprite.Play("walk_up")
+			c.PosY = c.PosY - speed 
+			CurrentDirection = Up 
+		}
 	} else if ebiten.IsKeyPressed(ebiten.KeyDown) {
-		c.Sprite.Play("walk_down")
-		c.PosY = c.PosY + speed 
-		CurrentDirection = Down 
+		tempY :=  c.PosY + speed 
+		tempX := c.PosX 
+		if Map.CanMove(tempX, tempY) {
+			c.Sprite.Play("walk_down")
+			c.PosY = c.PosY + speed 
+			CurrentDirection = Down 
+		}
 	} else if ebiten.IsKeyPressed(ebiten.KeyLeft) {
-		c.Sprite.Play("walk_left")
-		c.PosX = c.PosX - speed 
-		CurrentDirection = Left 
+		tempX := c.PosX - speed 
+		tempY := c.PosY 
+		if Map.CanMove(tempX, tempY) {
+			c.Sprite.Play("walk_left")
+			c.PosX = c.PosX - speed 
+			CurrentDirection = Left 
+		}
 	} else if ebiten.IsKeyPressed(ebiten.KeyRight) {
-		c.Sprite.Play("walk_right")
-		c.PosX = c.PosX + speed 
-		CurrentDirection = Right 
+		tempX := c.PosX + speed 
+		tempY := c.PosY 
+		if Map.CanMove(tempX, tempY) {
+			c.Sprite.Play("walk_right")
+			c.PosX = c.PosX + speed 
+			CurrentDirection = Right 
+		}
 	} else {
 	    switch CurrentDirection {
 	    case Up:
@@ -225,7 +317,7 @@ func (c *Character) Update() {
 }
 
 func (game *Game) Update() error {
-	game.Char.Update()
+	game.Char.Update(&game.Map)
 	return nil
 }
 
@@ -241,6 +333,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 }
 
 func main() {
+	
 	objectsLayer := GetObjectGroup("objects") 	// Search for Object Layer called "objects"
 	object := GetObjectFromObjectLayer(objectsLayer, "PlayerStart")
 	fmt.Println(object)
@@ -253,7 +346,9 @@ func main() {
 
 	game := &Game {
 		Char: Char, 
+		Map: NewCollisionMap(), 
 	}
+	fmt.Println(game.Map)
 	ebiten.SetWindowSize(640, 480)
 	ebiten.SetWindowTitle("Hello, World!")
 	if err := ebiten.RunGame(game); err != nil {

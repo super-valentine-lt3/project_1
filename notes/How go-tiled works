@@ -30,3 +30,5 @@ func DrawTiledLayer(screen *ebiten.Image, i int) {
 
 
 Map -> ObjectGroups ([]*ObjectGroup ) -> Objects []*Object -> X, Y (among other things)
+
+Collision by marking items in the tileset as solid using custom properties in Tiled 

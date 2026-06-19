@@ -214,15 +214,40 @@ func NewSpriteAnim(
 	return spriteAnim
 }
 
-func (sprite *SpriteAnim) Draw(Screen *ebiten.Image, PosX float64,  PosY float64) {
-	opts := &ebiten.DrawImageOptions{}
-    opts.GeoM.Translate(
-        float64(PosX),
-        float64(PosY),
-    )
-	sub := sprite.Img.SubImage(image.Rect(sprite.AsePlayer.CurrentFrameCoords()))
+func (sprite *SpriteAnim) Draw(Screen *ebiten.Image, PosX float64,  PosY float64, color []float32) {
+	// opts := &ebiten.DrawImageOptions{}
+    // opts.GeoM.Translate(
+    //     float64(PosX),
+    //     float64(PosY),
+    // )
+	// sub := sprite.Img.SubImage(image.Rect(sprite.AsePlayer.CurrentFrameCoords()))
 
-	Screen.DrawImage(sub.(*ebiten.Image), opts)
+	// Screen.DrawImage(sub.(*ebiten.Image), opts)
+	sub := sprite.Img.SubImage(
+	    image.Rect(sprite.AsePlayer.CurrentFrameCoords()),
+	).(*ebiten.Image)
+
+	opts := &ebiten.DrawRectShaderOptions{
+	    GeoM: ebiten.GeoM{},
+	    Images: [4]*ebiten.Image{
+	        sub,
+	    },
+	    Uniforms: map[string]any{
+	        "PlayerColor": color,
+	    },
+	}
+
+	opts.GeoM.Translate(
+	    float64(PosX),
+	    float64(PosY),
+	)
+
+	Screen.DrawRectShader(
+	    sub.Bounds().Dx(),
+	    sub.Bounds().Dy(),
+	    paletteShader,
+	    opts,
+	)
 }
 
 func NewCharacter(obj *tiled.Object, 
@@ -262,7 +287,11 @@ func NewCharacter(obj *tiled.Object,
 }
 
 func (c *Character) Draw(screen *ebiten.Image) {
-	c.Sprite.Draw(screen, c.PosX, c.PosY)
+	if c.Get("projectile_color") == "red" {
+		c.Sprite.Draw(screen, c.PosX, c.PosY, ColorRedShader)
+	} else if c.Get("projectile_color") == "green"  {
+		c.Sprite.Draw(screen, c.PosX, c.PosY, ColorGreenShader)
+	}
 }
 
 func (c *Character) Update(Map *CollisionMap) {

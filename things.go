@@ -11,6 +11,9 @@ var Projectiles []*Projectile
 var ColorRed = color.RGBA{R: 255, G: 0, B: 0, A: 255}
 var ColorGreen = color.RGBA{R: 0, G: 255, B: 0, A: 255}
 var ColorWhite = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+var ColorRedShader = []float32{1.0, 0.0, 0.0, 1.0}
+var ColorGreenShader = []float32{0.0, 1.0, 0.0, 1.0}
+
 
 func init() {
 	Projectiles = make([]*Projectile, 0)

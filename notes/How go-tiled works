@@ -27,3 +27,6 @@ func DrawTiledLayer(screen *ebiten.Image, i int) {
 	    }
 	}	
 }
+
+
+Map -> ObjectGroups ([]*ObjectGroup ) -> Objects []*Object -> X, Y (among other things)

@@ -32,6 +32,24 @@ func init() {
 
 }
 
+func GetObjectGroup(name string) *tiled.ObjectGroup {
+	for _, objectGroup := range gameMap.ObjectGroups {
+		if objectGroup.Name == name {
+			return objectGroup 
+		}
+	}
+	return nil 
+}
+
+func GetObjectFromObjectLayer(objectGroup *tiled.ObjectGroup, name string) *tiled.Object{
+	for _, object := range objectGroup.Objects {
+		if object.Name == name {
+			return object 
+		}
+	}	
+	return nil 
+}
+
 func DrawTiledLayer(screen *ebiten.Image, name string) {
 	for _, layer := range gameMap.Layers {
 		if layer.Name != name { continue }
@@ -74,6 +92,9 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 }
 
 func main() {
+	objectsLayer := GetObjectGroup("objects") 	// Search for Object Layer called "objects"
+	object := GetObjectFromObjectLayer(objectsLayer, "PlayerStart")
+
 	ebiten.SetWindowSize(640, 480)
 	ebiten.SetWindowTitle("Hello, World!")
 	if err := ebiten.RunGame(&Game{}); err != nil {

@@ -1,8 +1,20 @@
 {
-    "activeFile": "",
+    "activeFile": "map_1.tmx",
     "expandedProjectPaths": [
     ],
     "fileStates": {
+        "map_1.tmx": {
+            "scale": 2.01578125,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 216.04526780869702,
+                "y": 87.55910394543062
+            }
+        },
+        "test.tsx": {
+            "scaleInDock": 3,
+            "scaleInEditor": 1
+        }
     },
     "last.imagePath": "C:/Users/luna-/Documents/GameDevelopment/Go/project_1/assets",
     "map.height": 15,
@@ -11,9 +23,13 @@
     "map.tileWidth": 16,
     "map.width": 20,
     "openFiles": [
+        "map_1.tmx",
+        "test.tsx"
     ],
     "project": "project_1.tiled-project",
     "recentFiles": [
+        "test.tsx",
+        "map_1.tmx"
     ],
     "tileset.lastUsedFormat": "tsx",
     "tileset.tileSize": {
